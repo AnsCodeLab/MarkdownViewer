@@ -118,6 +118,8 @@ async function closeTab(id) {
       editor.value = tab.content;
       await saveCurrentTab();
       if (prevActiveId !== id) activeTabId = prevActiveId;
+    } else {
+      return;
     }
   }
 
@@ -137,6 +139,12 @@ async function closeTab(id) {
     editor.value = newTab.content;
   }
 
+  // Ensure editor reflects the tab that is now active
+  const nowActive = getActiveTab();
+  if (nowActive) {
+    currentFilePath = nowActive.path;
+    editor.value = nowActive.content;
+  }
   render();
   updateStatus();
   renderTabs();
@@ -191,6 +199,7 @@ async function saveCurrentTab() {
     }
     tab.savedContent = tab.content;
     tab.dirty = false;
+    saveToRecent(tab.path, tab.content);
     renderTabs();
     const statusLeft = document.getElementById('statusLeft');
     if (statusLeft) {
@@ -434,11 +443,7 @@ document.addEventListener('drop', async (e) => {
     if (window.electronAPI && typeof window.electronAPI.openFile === 'function' && file.path) {
       const result = await window.electronAPI.openFile();
       if (result && !result.canceled) {
-        currentFilePath = result.filePath || '';
-        editor.value = result.content;
-        render();
-        updateStatus();
-        if (result.filePath) saveToRecent(result.filePath, result.content);
+        loadFile(result.filePath || '', result.content || '');
       }
     }
   }
