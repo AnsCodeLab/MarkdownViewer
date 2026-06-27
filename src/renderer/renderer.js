@@ -148,6 +148,51 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
+async function saveCurrentTab() {
+  const tab = getActiveTab();
+  if (!tab) return;
+
+  if (!tab.path) {
+    if (!window.electronAPI || typeof window.electronAPI.saveFileAs !== 'function') return;
+    const result = await window.electronAPI.saveFileAs(tab.content);
+    if (!result || result.canceled) return;
+    tab.path = result.filePath;
+    tab.name = result.filePath.split(/[\\/]/).pop();
+    tab.savedContent = tab.content;
+    tab.dirty = false;
+    currentFilePath = tab.path;
+    saveToRecent(tab.path, tab.content);
+    updateFormatButtons();
+    renderTabs();
+    updateStatus();
+    return;
+  }
+
+  try {
+    await window.electronAPI.saveFile(tab.path, tab.content);
+    tab.savedContent = tab.content;
+    tab.dirty = false;
+    renderTabs();
+    const statusLeft = document.getElementById('statusLeft');
+    if (statusLeft) {
+      statusLeft.textContent = `Saved: ${tab.name}`;
+      setTimeout(updateStatus, 2000);
+    }
+  } catch (e) {
+    alert('Save failed: ' + (e.message || e));
+  }
+}
+
+const saveBtn = document.getElementById('saveBtn');
+if (saveBtn) saveBtn.addEventListener('click', () => saveCurrentTab());
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveCurrentTab();
+  }
+});
+
 function updateStatus() {
   const text = editor.value;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -456,6 +501,13 @@ let renderTimer = null;
 editor.addEventListener('input', () => {
   clearTimeout(renderTimer);
   renderTimer = setTimeout(render, 150);
+  const tab = getActiveTab();
+  if (tab) {
+    tab.content = editor.value;
+    const wasDirty = tab.dirty;
+    tab.dirty = tab.content !== tab.savedContent;
+    if (tab.dirty !== wasDirty) renderTabs();
+  }
   updateStatus();
 });
 
