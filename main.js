@@ -16,6 +16,8 @@ const APP_DISPLAY_NAME = 'Markdown Viewer';
 
 let pendingOpenPath = '';
 let mainWindow = null;
+// Paths the main process has legitimately opened — only these may be overwritten by file:save
+const openedFilePaths = new Set();
 
 // ensure only one instance is running so we can handle multiple opens on Windows
 const gotLock = app.requestSingleInstanceLock();
@@ -225,6 +227,7 @@ ipcMain.handle('dialog:openFile', async () => {
   });
   if (canceled || filePaths.length === 0) return { canceled: true };
   const content = await fs.readFile(filePaths[0], 'utf8');
+  openedFilePaths.add(filePaths[0]);
   return { canceled: false, filePath: filePaths[0], content };
 });
 
@@ -233,6 +236,7 @@ ipcMain.handle('get-initial-file', async () => {
   if (pendingOpenPath) {
     try {
       const content = await fs.readFile(pendingOpenPath, 'utf8');
+      openedFilePaths.add(pendingOpenPath);
       const result = { canceled: false, filePath: pendingOpenPath, content };
       pendingOpenPath = '';
       return result;
@@ -346,6 +350,9 @@ ipcMain.handle('file:save', async (event, filePath, content) => {
   if (!filePath || typeof filePath !== 'string') {
     return { success: false, error: 'Invalid file path' };
   }
+  if (!openedFilePaths.has(filePath)) {
+    return { success: false, error: 'Path not authorized for save' };
+  }
   try {
     await fs.writeFile(filePath, String(content || ''), 'utf8');
     return { success: true };
@@ -367,6 +374,7 @@ ipcMain.handle('file:saveAs', async (event, content) => {
   if (canceled || !filePath) return { canceled: true };
   try {
     await fs.writeFile(filePath, String(content || ''), 'utf8');
+    openedFilePaths.add(filePath);
     return { success: true, filePath };
   } catch (e) {
     return { success: false, error: e.message };
@@ -394,6 +402,7 @@ async function openPathInWindow(filePath) {
   if (!mainWindow) return;
   try {
     const content = await fs.readFile(filePath, 'utf8');
+    openedFilePaths.add(filePath);
     mainWindow.webContents.send('auto-open', { canceled: false, filePath, content });
   } catch (e) {
     mainWindow.webContents.send('auto-open', { canceled: true });
