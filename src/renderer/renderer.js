@@ -133,19 +133,52 @@ function updateFormatButtons() {
 }
 
 function loadFile(path, content) {
-  currentFilePath = path || '';
-  editor.value = content || '';
+  const normPath = path || '';
+  const normContent = content || '';
+
+  // If already open in a tab, switch to it
+  if (normPath) {
+    const existing = tabs.find(t => t.path === normPath);
+    if (existing) {
+      switchTab(existing.id);
+      return;
+    }
+  }
+
+  // Save current editor state into active tab before changing
+  const active = getActiveTab();
+  if (active) active.content = editor.value;
+
+  // Replace empty Untitled tab; otherwise open a new tab
+  if (active && !active.path && !active.content.trim() && !active.dirty) {
+    active.path = normPath;
+    active.name = normPath ? normPath.split(/[\\/]/).pop() : 'Untitled';
+    active.content = normContent;
+    active.savedContent = normContent;
+    active.dirty = false;
+    activeTabId = active.id;
+  } else {
+    const tab = createTab(normPath, normContent);
+    activeTabId = tab.id;
+  }
+
+  const tab = getActiveTab();
+  currentFilePath = tab.path;
+  editor.value = tab.content;
+
   render();
   updateStatus();
   updateFormatButtons();
-  if (isPreviewable(path)) {
+  renderTabs();
+
+  if (isPreviewable(normPath)) {
     setEditorVisible(false);
     setPreviewVisible(true);
     autoShowPreview = true;
   } else {
     setEditorVisible(true);
   }
-  if (path) saveToRecent(path, content);
+  if (normPath) saveToRecent(normPath, normContent);
 }
 
 function setPreviewVisible(visible) {
