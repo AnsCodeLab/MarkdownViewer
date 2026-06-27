@@ -47,6 +47,62 @@ function applyTheme(theme) {
 }
 
 let currentFilePath = '';
+let tabs = [];
+let activeTabId = 0;
+let nextTabId = 0;
+
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function createTab(path, content) {
+  const id = nextTabId++;
+  const name = path ? path.split(/[\\/]/).pop() : 'Untitled';
+  const tab = { id, path: path || '', name, content: content || '', savedContent: content || '', dirty: false };
+  tabs.push(tab);
+  return tab;
+}
+
+function getActiveTab() {
+  return tabs.find(t => t.id === activeTabId) || null;
+}
+
+function renderTabs() {
+  const tabBar = document.getElementById('tabBar');
+  if (!tabBar) return;
+  tabBar.innerHTML = '';
+  tabs.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id === activeTabId ? ' tab-active' : '');
+    el.dataset.id = tab.id;
+    el.innerHTML =
+      '<span class="tab-dirty" style="visibility:' + (tab.dirty ? 'visible' : 'hidden') + '">●</span>' +
+      '<span class="tab-name" title="' + escapeHtml(tab.path || tab.name) + '">' + escapeHtml(tab.name) + '</span>' +
+      '<button class="tab-close" data-id="' + tab.id + '" title="Close tab">×</button>';
+    el.addEventListener('click', (e) => {
+      if (!e.target.classList.contains('tab-close')) switchTab(tab.id);
+    });
+    el.querySelector('.tab-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTab(tab.id);
+    });
+    tabBar.appendChild(el);
+  });
+}
+
+function switchTab(id) {
+  const active = getActiveTab();
+  if (active) active.content = editor.value;
+  activeTabId = id;
+  const tab = getActiveTab();
+  if (!tab) return;
+  currentFilePath = tab.path;
+  editor.value = tab.content;
+  render();
+  updateStatus();
+  updateFormatButtons();
+  renderTabs();
+}
 
 function updateStatus() {
   const text = editor.value;
@@ -588,6 +644,9 @@ new ResizeObserver(() => {
 }).observe(document.querySelector('.toolbar'));
 
 // --- Startup ---
+const initialTab = createTab('', '');
+activeTabId = initialTab.id;
+renderTabs();
 updateFormatButtons();
 const savedTheme = localStorage.getItem('theme') || 'github';
 const savedFontSize = localStorage.getItem('fontSize') || '14';
