@@ -104,6 +104,50 @@ function switchTab(id) {
   renderTabs();
 }
 
+async function closeTab(id) {
+  const tab = tabs.find(t => t.id === id);
+  if (!tab) return;
+
+  if (tab.dirty) {
+    const doSave = confirm(`Save changes to "${tab.name}" before closing?`);
+    if (doSave) {
+      // Temporarily make this tab active so saveCurrentTab operates on it
+      const prevActiveId = activeTabId;
+      activeTabId = id;
+      currentFilePath = tab.path;
+      editor.value = tab.content;
+      await saveCurrentTab();
+      if (prevActiveId !== id) activeTabId = prevActiveId;
+    }
+  }
+
+  const idx = tabs.findIndex(t => t.id === id);
+  tabs.splice(idx, 1);
+
+  if (tabs.length === 0) {
+    const newTab = createTab('', '');
+    activeTabId = newTab.id;
+    currentFilePath = '';
+    editor.value = '';
+  } else if (activeTabId === id) {
+    const newIdx = Math.min(idx, tabs.length - 1);
+    activeTabId = tabs[newIdx].id;
+    const newTab = getActiveTab();
+    currentFilePath = newTab.path;
+    editor.value = newTab.content;
+  }
+
+  render();
+  updateStatus();
+  renderTabs();
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (tabs.some(t => t.dirty)) {
+    e.returnValue = '';
+  }
+});
+
 function updateStatus() {
   const text = editor.value;
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
