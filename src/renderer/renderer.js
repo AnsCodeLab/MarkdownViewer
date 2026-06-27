@@ -169,7 +169,26 @@ async function saveCurrentTab() {
   }
 
   try {
-    await window.electronAPI.saveFile(tab.path, tab.content);
+    const result = await window.electronAPI.saveFile(tab.path, tab.content);
+    if (!result || !result.success) {
+      if (result && result.error === 'Path not authorized for save') {
+        // File was opened outside the main process (e.g. drag-drop); treat as Save As
+        const saveAsResult = await window.electronAPI.saveFileAs(tab.content);
+        if (!saveAsResult || saveAsResult.canceled) return;
+        tab.path = saveAsResult.filePath;
+        tab.name = saveAsResult.filePath.split(/[\\/]/).pop();
+        tab.savedContent = tab.content;
+        tab.dirty = false;
+        currentFilePath = tab.path;
+        saveToRecent(tab.path, tab.content);
+        updateFormatButtons();
+        renderTabs();
+        updateStatus();
+        return;
+      }
+      alert('Save failed: ' + (result && result.error || 'Unknown error'));
+      return;
+    }
     tab.savedContent = tab.content;
     tab.dirty = false;
     renderTabs();
