@@ -23,8 +23,7 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, argv) => {
-    if (process.platform === 'win32') {
-      // executable may be the first arg, look for .md/.markdown files
+    if (process.platform !== 'darwin') {
       const fileArg = argv.find(arg => arg.match(/\.(md|markdown)$/i));
       if (fileArg) {
         pendingOpenPath = fileArg;
@@ -110,8 +109,8 @@ app.whenReady().then(() => {
 
   createWindow();
 
-  // if the app was launched with a file argument
-  if (process.platform === 'win32') {
+  // if the app was launched with a file argument (macOS uses open-file event instead)
+  if (process.platform !== 'darwin') {
     const args = process.argv.slice(1);
     const fileArg = args.find(arg => arg.match(/\.(md|markdown)$/i));
     if (fileArg) pendingOpenPath = fileArg;
