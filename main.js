@@ -365,8 +365,12 @@ ipcMain.handle('file:saveAs', async (event, content) => {
     ]
   });
   if (canceled || !filePath) return { canceled: true };
-  await fs.writeFile(filePath, String(content || ''), 'utf8');
-  return { success: true, filePath };
+  try {
+    await fs.writeFile(filePath, String(content || ''), 'utf8');
+    return { success: true, filePath };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 });
 
 ipcMain.handle('export:pdf', async (event, payload = {}) => {
