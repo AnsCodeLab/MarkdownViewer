@@ -12,6 +12,7 @@
     <div class="toolbar">
       <div class="toolbar-group">
         <button id="openBtn" title="Open file (Ctrl+O)">Open</button>
+        <button id="saveBtn" title="Save file (Ctrl+S)">Save</button>
       </div>
       <div class="toolbar-sep" data-overflow-priority="2"></div>
       <select id="recentFiles" data-overflow-priority="2" title="Recent files"><option value="">Recent files</option></select>
@@ -119,6 +120,7 @@
       </div>
     </div>
   </header>
+  <div id="tabBar"></div>
   <main>
     <textarea id="editor" placeholder="Paste Markdown or open a file..." autofocus></textarea>
     <div id="preview" class="preview"></div>
