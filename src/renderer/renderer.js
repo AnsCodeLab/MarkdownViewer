@@ -117,6 +117,16 @@ async function closeTab(id) {
       currentFilePath = tab.path;
       editor.value = tab.content;
       await saveCurrentTab();
+      if (tab.dirty) {
+        // Save was cancelled or failed — abort the close
+        if (prevActiveId !== id) {
+          activeTabId = prevActiveId;
+          const restored = getActiveTab();
+          if (restored) { currentFilePath = restored.path; editor.value = restored.content; }
+        }
+        renderTabs();
+        return;
+      }
       if (prevActiveId !== id) activeTabId = prevActiveId;
     } else {
       return;
@@ -456,7 +466,13 @@ if (beautifyBtn) {
       const formatted = (window.electronAPI && typeof window.electronAPI.beautify === 'function')
         ? await window.electronAPI.beautify(text, currentFilePath) : text;
       editor.value = formatted || text;
+      const bTab = getActiveTab();
+      if (bTab) {
+        bTab.content = editor.value;
+        bTab.dirty = bTab.content !== bTab.savedContent;
+      }
       render();
+      if (bTab) renderTabs();
     } catch (e) {
       console.error('Beautify error', e);
       alert('Format failed: ' + (e && e.message || e));
@@ -471,7 +487,13 @@ if (minifyBtn) {
       const minified = (window.electronAPI && typeof window.electronAPI.minify === 'function')
         ? await window.electronAPI.minify(text, currentFilePath) : text;
       editor.value = minified || text;
+      const mTab = getActiveTab();
+      if (mTab) {
+        mTab.content = editor.value;
+        mTab.dirty = mTab.content !== mTab.savedContent;
+      }
       render();
+      if (mTab) renderTabs();
     } catch (e) {
       console.error('Minify error', e);
       alert('Minify failed: ' + (e && e.message || e));
