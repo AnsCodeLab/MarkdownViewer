@@ -342,6 +342,23 @@ ipcMain.handle('get-styles-css', async () => {
   }
 });
 
+ipcMain.handle('file:save', async (event, filePath, content) => {
+  await fs.writeFile(filePath, String(content || ''), 'utf8');
+  return { success: true };
+});
+
+ipcMain.handle('file:saveAs', async (event, content) => {
+  const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+    filters: [
+      { name: 'Markdown', extensions: ['md', 'markdown', 'txt'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  if (canceled || !filePath) return { canceled: true };
+  await fs.writeFile(filePath, String(content || ''), 'utf8');
+  return { success: true, filePath };
+});
+
 ipcMain.handle('export:pdf', async (event, payload = {}) => {
   return exporter.exportPdf(payload.renderedHtml || '', payload.cssText || '', payload.defaultName || 'document', payload.sourceFilePath || '');
 });

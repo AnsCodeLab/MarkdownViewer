@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minify: (text, filePath) => ipcRenderer.invoke('format:minify', text, filePath),
   exportFile: (format, payload) => ipcRenderer.invoke('export:' + format, payload),
   getStylesCss: () => ipcRenderer.invoke('get-styles-css'),
+  saveFile: (filePath, content) => ipcRenderer.invoke('file:save', filePath, content),
+  saveFileAs: (content) => ipcRenderer.invoke('file:saveAs', content),
 
   getInitialFile: () => ipcRenderer.invoke('get-initial-file'),
   onAutoOpen: (callback) => ipcRenderer.on('auto-open', (event, data) => callback(data)),
