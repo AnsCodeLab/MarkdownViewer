@@ -343,11 +343,21 @@ ipcMain.handle('get-styles-css', async () => {
 });
 
 ipcMain.handle('file:save', async (event, filePath, content) => {
-  await fs.writeFile(filePath, String(content || ''), 'utf8');
-  return { success: true };
+  if (!filePath || typeof filePath !== 'string') {
+    return { success: false, error: 'Invalid file path' };
+  }
+  try {
+    await fs.writeFile(filePath, String(content || ''), 'utf8');
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 });
 
 ipcMain.handle('file:saveAs', async (event, content) => {
+  if (!mainWindow) {
+    return { canceled: true };
+  }
   const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     filters: [
       { name: 'Markdown', extensions: ['md', 'markdown', 'txt'] },
