@@ -169,6 +169,7 @@ window.addEventListener('beforeunload', (e) => {
 async function saveCurrentTab() {
   const tab = getActiveTab();
   if (!tab) return;
+  tab.content = editor.value;
 
   if (!tab.path) {
     if (!window.electronAPI || typeof window.electronAPI.saveFileAs !== 'function') return;
