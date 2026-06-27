@@ -169,7 +169,6 @@ function loadFile(path, content) {
   render();
   updateStatus();
   updateFormatButtons();
-  renderTabs();
 
   if (isPreviewable(normPath)) {
     setEditorVisible(false);
@@ -179,6 +178,7 @@ function loadFile(path, content) {
     setEditorVisible(true);
   }
   if (normPath) saveToRecent(normPath, normContent);
+  renderTabs();
 }
 
 function setPreviewVisible(visible) {
