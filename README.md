@@ -50,7 +50,42 @@ Click **Export ▾** in the toolbar to save the current document:
 
 ## Installation
 
-Download the latest installer from the [Releases](https://github.com/AnzDev4Life/MarkdownViewer/releases) page and run `MarkdownViewer Setup x.y.z.exe`. After installation, `.md` and `.markdown` files will open in MarkdownViewer from the Explorer context menu.
+Download the latest release from the [Releases](https://github.com/AnzDev4Life/MarkdownViewer/releases) page.
+
+### Windows
+
+Run `MarkdownViewer Setup x.y.z.exe`. `.md` and `.markdown` files will open in MarkdownViewer from the Explorer context menu.
+
+### Linux
+
+**AppImage** (any distro):
+
+```bash
+chmod +x MarkdownViewer-*.AppImage
+./MarkdownViewer-*.AppImage
+```
+
+**Debian / Ubuntu:**
+
+```bash
+sudo dpkg -i markdownviewer_*.deb
+```
+
+**Fedora / RHEL:**
+
+```bash
+sudo rpm -i markdownviewer-*.rpm
+```
+
+**One-line installer** (extracts AppImage, installs to `~/.local`, sets up desktop entry):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AnzDev4Life/MarkdownViewer/main/install.sh | bash
+```
+
+### macOS
+
+Open the `.dmg` file and drag MarkdownViewer to Applications.
 
 ## Development
 
