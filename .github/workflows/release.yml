@@ -21,6 +21,10 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm libarchive-tools
+
       - name: Install dependencies
         run: npm ci --silent
 
@@ -28,3 +32,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release
+
+      - name: Upload deb and rpm from dist
+        if: runner.os == 'Linux'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" dist/markdownviewer_*.deb dist/markdownviewer-*.rpm --clobber

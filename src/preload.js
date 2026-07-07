@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStylesCss: () => ipcRenderer.invoke('get-styles-css'),
   saveFile: (filePath, content) => ipcRenderer.invoke('file:save', filePath, content),
   saveFileAs: (content) => ipcRenderer.invoke('file:saveAs', content),
+  readFile: (filePath) => ipcRenderer.invoke('file:read', filePath),
 
   getInitialFile: () => ipcRenderer.invoke('get-initial-file'),
   onAutoOpen: (callback) => ipcRenderer.on('auto-open', (event, data) => callback(data)),

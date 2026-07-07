@@ -1,5 +1,6 @@
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const fs = require('fs').promises;
 const MarkdownIt = require('markdown-it');
 const hljs = require('highlight.js');
@@ -51,6 +52,43 @@ const md = new MarkdownIt({
   }
 });
 
+// Relative image/media paths in a markdown file are relative to that file's
+// folder, not to src/renderer/index.html — resolve them to file:// URLs so
+// the preview (loaded from index.html) can actually find them on disk.
+function resolveMediaSrc(src, filePath) {
+  if (!src || !filePath) return src;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(src) || src.startsWith('//') || src.startsWith('/')) return src;
+  try {
+    const resolved = path.resolve(path.dirname(filePath), src);
+    return pathToFileURL(resolved).href;
+  } catch (e) {
+    return src;
+  }
+}
+
+md.renderer.rules.image = function (tokens, idx, options, env, self) {
+  const token = tokens[idx];
+  const srcIdx = token.attrIndex('src');
+  if (srcIdx >= 0 && env && env.filePath) {
+    token.attrs[srcIdx][1] = resolveMediaSrc(token.attrs[srcIdx][1], env.filePath);
+  }
+  return self.renderToken(tokens, idx, options);
+};
+
+// Typora/Obsidian-style image sizing, e.g. ![alt](img.png =300x200) or
+// (=70%x) / (=x200). Standard CommonMark doesn't parse this at all, so
+// markdown-it drops the whole image — rewrite it into an <img> tag first.
+function preprocessSizedImages(str, filePath) {
+  return str.replace(/!\[([^\]]*)\]\((\S+?)\s+=(\d+%?)?x(\d+%?)?\)/g, (match, alt, url, width, height) => {
+    const src = resolveMediaSrc(url, filePath);
+    const styles = [];
+    if (width) styles.push(`width:${width}`);
+    if (height) styles.push(`height:${height}`);
+    const styleAttr = styles.length ? ` style="${md.utils.escapeHtml(styles.join(';'))}"` : '';
+    return `<img src="${md.utils.escapeHtml(src)}" alt="${md.utils.escapeHtml(alt)}"${styleAttr}>`;
+  });
+}
+
 function taskListPlugin(md) {
   md.core.ruler.push('task_list', (state) => {
     const tokens = state.tokens;
@@ -75,6 +113,31 @@ function taskListPlugin(md) {
   });
 }
 taskListPlugin(md);
+
+// GitHub-style heading anchors so in-document links like [text](#some-heading)
+// (e.g. a table of contents) have an id to actually jump to.
+function headingAnchorPlugin(md) {
+  md.core.ruler.push('heading_anchor', (state) => {
+    const slugCounts = new Map();
+    const tokens = state.tokens;
+    for (let i = 0; i < tokens.length; i++) {
+      if (tokens[i].type !== 'heading_open') continue;
+      const inline = tokens[i + 1];
+      if (!inline || inline.type !== 'inline') continue;
+      const text = inline.children
+        .filter(t => t.type === 'text' || t.type === 'code_inline')
+        .map(t => t.content)
+        .join('');
+      let slug = text.toLowerCase().replace(/[^a-z0-9 \-]/g, '').replace(/ /g, '-');
+      if (!slug) slug = 'section';
+      const count = slugCounts.get(slug) || 0;
+      slugCounts.set(slug, count + 1);
+      if (count > 0) slug = `${slug}-${count}`;
+      tokens[i].attrSet('id', slug);
+    }
+  });
+}
+headingAnchorPlugin(md);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -269,7 +332,8 @@ ipcMain.handle('render:markdown', (event, text, filePath) => {
       return { type: 'html', content: sanitized };
     }
     if (contentType === 'md' || contentType === 'markdown') {
-      return { type: 'markdown', content: md.render(str) };
+      const preprocessed = preprocessSizedImages(str, filePath);
+      return { type: 'markdown', content: md.render(preprocessed, { filePath }) };
     }
     return { type: 'plain', content: str };
   } catch (e) {
@@ -343,6 +407,18 @@ ipcMain.handle('get-styles-css', async () => {
     return await fs.readFile(path.join(__dirname, 'src', 'renderer', 'styles.css'), 'utf8');
   } catch (e) {
     return '';
+  }
+});
+
+ipcMain.handle('file:read', async (event, filePath) => {
+  if (!filePath || typeof filePath !== 'string' || !openedFilePaths.has(filePath)) {
+    return { success: false, error: 'Path not authorized for read' };
+  }
+  try {
+    const content = await fs.readFile(filePath, 'utf8');
+    return { success: true, content };
+  } catch (e) {
+    return { success: false, error: e.message };
   }
 });
 

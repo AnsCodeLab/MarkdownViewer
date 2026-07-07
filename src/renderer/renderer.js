@@ -1,6 +1,7 @@
 const editor = document.getElementById('editor');
 const preview = document.getElementById('preview');
 const openBtn = document.getElementById('openBtn');
+const refreshBtn = document.getElementById('refreshBtn');
 const beautifyBtn = document.getElementById('beautifyBtn');
 const minifyBtn = document.getElementById('minifyBtn');
 const toggleSourceBtn = document.getElementById('toggleSourceBtn');
@@ -16,6 +17,7 @@ const overflowBtn = document.getElementById('overflowBtn');
 const overflowMenu = document.getElementById('overflowMenu');
 const ovfBeautifyBtn = document.getElementById('ovfBeautifyBtn');
 const ovfMinifyBtn = document.getElementById('ovfMinifyBtn');
+const ovfRefreshBtn = document.getElementById('ovfRefreshBtn');
 const ovfSearchBox = document.getElementById('ovfSearchBox');
 const ovfFindBtn = document.getElementById('ovfFindBtn');
 const ovfThemeToggle = document.getElementById('ovfThemeToggle');
@@ -258,7 +260,39 @@ function updateFormatButtons() {
   if (minifyBtn) minifyBtn.disabled = !enabled;
   if (ovfBeautifyBtn) ovfBeautifyBtn.disabled = !enabled;
   if (ovfMinifyBtn) ovfMinifyBtn.disabled = !enabled;
+  if (refreshBtn) refreshBtn.disabled = !currentFilePath;
+  if (ovfRefreshBtn) ovfRefreshBtn.disabled = !currentFilePath;
 }
+
+async function refreshCurrentTab() {
+  const tab = getActiveTab();
+  if (!tab || !tab.path) return;
+  if (!window.electronAPI || typeof window.electronAPI.readFile !== 'function') return;
+
+  if (tab.dirty) {
+    const proceed = confirm(`"${tab.name}" has unsaved changes. Reload from disk and discard them?`);
+    if (!proceed) return;
+  }
+
+  const result = await window.electronAPI.readFile(tab.path);
+  if (!result || !result.success) {
+    alert('Refresh failed: ' + (result && result.error || 'Unknown error'));
+    return;
+  }
+
+  tab.content = result.content;
+  tab.savedContent = result.content;
+  tab.dirty = false;
+
+  if (tab.id === activeTabId) {
+    editor.value = tab.content;
+    render();
+    updateStatus();
+  }
+  renderTabs();
+}
+
+if (refreshBtn) refreshBtn.addEventListener('click', () => refreshCurrentTab());
 
 function loadFile(path, content) {
   const normPath = path || '';
@@ -786,6 +820,7 @@ if (ovfRecentFiles) {
 
 if (ovfBeautifyBtn) ovfBeautifyBtn.addEventListener('click', () => { overflowMenu.classList.remove('open'); beautifyBtn.click(); });
 if (ovfMinifyBtn) ovfMinifyBtn.addEventListener('click', () => { overflowMenu.classList.remove('open'); minifyBtn.click(); });
+if (ovfRefreshBtn) ovfRefreshBtn.addEventListener('click', () => { overflowMenu.classList.remove('open'); refreshBtn.click(); });
 
 document.querySelectorAll('.ovf-export-item').forEach((item) => {
   item.addEventListener('click', async () => {

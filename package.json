@@ -1,6 +1,6 @@
 {
   "name": "markdownviewer",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A fast, lightweight Markdown viewer",
   "main": "main.js",
   "scripts": {
@@ -10,7 +10,10 @@
     "download": "gh release download --pattern *Setup*.exe --dir %USERPROFILE%/Downloads --clobber"
   },
   "keywords": [],
-  "author": "AnsCodeLab",
+  "author": {
+    "name": "AnsCodeLab",
+    "email": "annguyen209@gmail.com"
+  },
   "license": "ISC",
   "dependencies": {
     "clean-css": "^5.3.3",
@@ -62,7 +65,9 @@
     ],
     "linux": {
       "target": [
-        "AppImage"
+        "AppImage",
+        "deb",
+        "rpm"
       ],
       "category": "Utility"
     },

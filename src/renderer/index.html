@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>Markdown Viewer</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data:; img-src 'self' data: file:; media-src 'self' data: file:;">
   <link id="hlTheme" rel="stylesheet" href="">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -13,6 +13,7 @@
       <div class="toolbar-group">
         <button id="openBtn" title="Open file (Ctrl+O)">Open</button>
         <button id="saveBtn" title="Save file (Ctrl+S)">Save</button>
+        <button id="refreshBtn" title="Reload from disk (in case another app changed it)">Refresh</button>
       </div>
       <div class="toolbar-sep" data-overflow-priority="2"></div>
       <select id="recentFiles" data-overflow-priority="2" title="Recent files"><option value="">Recent files</option></select>
@@ -77,6 +78,7 @@
             <div class="overflow-row">
               <button id="ovfBeautifyBtn">Format</button>
               <button id="ovfMinifyBtn">Minify</button>
+              <button id="ovfRefreshBtn">Refresh</button>
             </div>
             <button class="dropdown-item ovf-export-item" data-format="pdf">Export PDF</button>
             <button class="dropdown-item ovf-export-item" data-format="docx">Export Word (.docx)</button>
